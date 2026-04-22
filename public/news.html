@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Новости — приход Борисоглебск</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Manrope:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body data-nav="news">
+  <div id="header-root"></div>
+
+  <main class="page-main">
+    <div class="container">
+      <div class="page-head">
+        <h1>Новости</h1>
+        <p class="lead">Материалы подгружаются с официального сайта Русской Православной Церкви (<a href="https://www.patriarchia.ru/" target="_blank" rel="noopener noreferrer">Патриархия.ru</a>) и с сайта Воронежской епархии (<a href="https://www.vob-eparhia.ru/" target="_blank" rel="noopener noreferrer">vob-eparhia.ru</a>). </p>
+      </div>
+      <div class="news-toolbar">
+        <label class="field-inline">
+          <span class="visually-hidden">Источник</span>
+          <select id="news-source" class="input">
+            <option value="all">Все источники</option>
+            <option value="patriarchia">Патриархия.ru</option>
+            <option value="vob_eparhia">Воронежская епархия</option>
+          </select>
+        </label>
+        <button type="button" class="btn btn--small" id="news-refresh">Обновить</button>
+      </div>
+      <div id="news-feed" class="news-feed" aria-live="polite"></div>
+      <p style="margin-top:2rem;"><a href="/">← На главную</a></p>
+    </div>
+  </main>
+
+  <div id="footer-root"></div>
+  <script src="/js/layout.js"></script>
+  <script src="/js/news.js"></script>
+</body>
+</html>

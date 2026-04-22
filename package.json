@@ -1,0 +1,19 @@
+{
+  "name": "prichod-borisoglebsk",
+  "version": "1.0.0",
+  "description": "Сайт православного прихода — практика ПП.09",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "mysql2": "^3.11.0",
+    "rss-parser": "^3.13.0"
+  }
+}

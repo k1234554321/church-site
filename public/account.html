@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Личный кабинет — Храм святителя Николая</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Manrope:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/styles.css" />
+  <style>
+    .auth-wrap { max-width: 460px; margin: 0 auto; }
+    .tab-bar { display: flex; gap: .5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .tab-btn {
+      padding: .5rem 1.1rem; border-radius: 999px; border: 2px solid transparent;
+      font: inherit; font-weight: 600; font-size: .9rem; cursor: pointer;
+      background: var(--surface); color: var(--navy-soft);
+      border-color: rgba(30,45,61,.12); transition: all .18s;
+    }
+    .tab-btn.active { background: var(--gold); color: var(--navy); border-color: var(--gold); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    .history-table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+    .history-table th { text-align: left; padding: .5rem .75rem; color: var(--muted); font-weight: 600; border-bottom: 2px solid rgba(30,45,61,.1); }
+    .history-table td { padding: .6rem .75rem; border-bottom: 1px solid rgba(30,45,61,.07); }
+    .history-table tr:last-child td { border-bottom: none; }
+    .badge {
+      display: inline-block; padding: .15rem .55rem; border-radius: 999px; font-size: .75rem; font-weight: 700;
+    }
+    .badge-new { background: rgba(184,149,74,.15); color: var(--gold-dim); }
+    .badge-processing { background: rgba(45,74,94,.12); color: var(--accent); }
+    .badge-done { background: rgba(60,140,80,.12); color: #2d7a44; }
+    .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 600px) { .profile-grid { grid-template-columns: 1fr; } }
+    .section-card { background: var(--surface); border-radius: var(--radius); padding: 1.5rem; box-shadow: var(--shadow); margin-bottom: 1.5rem; }
+    .empty-state { text-align: center; padding: 2rem; color: var(--muted); font-size: .95rem; }
+    .user-greeting { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; }
+    .user-avatar { width: 52px; height: 52px; border-radius: 50%; background: var(--navy); color: #f0ebe3; display: grid; place-items: center; font-family: var(--font-display); font-size: 1.4rem; font-weight: 700; flex-shrink: 0; }
+    .check label { font-weight: 400; }
+    .toggle-form { font-size: .9rem; color: var(--muted); margin-top: .75rem; }
+    .toggle-form a { cursor: pointer; color: var(--gold-dim); }
+  </style>
+</head>
+<body data-nav="account">
+  <div id="header-root"></div>
+
+  <main class="page-main">
+    <div class="container">
+      <div class="page-head">
+        <h1>Личный кабинет</h1>
+        <p class="lead">История записок и пожертвований, настройки профиля.</p>
+      </div>
+
+      <!-- Авторизация (показывается если не залогинен) -->
+      <div id="auth-section">
+        <div class="auth-wrap">
+          <!-- Вход -->
+          <div id="login-block" class="section-card">
+            <h2 style="margin-top:0;font-size:1.5rem;">Вход</h2>
+            <form id="form-login" class="form" novalidate>
+              <label>Email *<input class="input" name="email" type="email" required autocomplete="email" /></label>
+              <label>Пароль *<input class="input" name="password" type="password" required autocomplete="current-password" /></label>
+              <button type="submit" class="btn btn--primary full">Войти</button>
+              <p id="login-status" class="status" role="status"></p>
+            </form>
+            <p class="toggle-form">Ещё нет аккаунта? <a id="go-register">Зарегистрироваться</a></p>
+          </div>
+
+          <!-- Регистрация -->
+          <div id="register-block" class="section-card" style="display:none;">
+            <h2 style="margin-top:0;font-size:1.5rem;">Регистрация</h2>
+            <form id="form-register" class="form" novalidate>
+              <label>Имя *<input class="input" name="name" required autocomplete="name" /></label>
+              <label>Email *<input class="input" name="email" type="email" required autocomplete="email" /></label>
+              <label>Пароль * (мин. 6 символов)<input class="input" name="password" type="password" required autocomplete="new-password" /></label>
+              <label>Телефон<input class="input" name="phone" type="tel" autocomplete="tel" /></label>
+              <button type="submit" class="btn btn--primary full">Создать аккаунт</button>
+              <p id="register-status" class="status" role="status"></p>
+            </form>
+            <p class="toggle-form">Уже есть аккаунт? <a id="go-login">Войти</a></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Кабинет (показывается после входа) -->
+      <div id="cabinet-section" style="display:none;">
+        <div class="user-greeting">
+          <div class="user-avatar" id="user-avatar">?</div>
+          <div>
+            <strong id="user-name-display" style="font-family:var(--font-display);font-size:1.3rem;"></strong>
+            <p class="muted" style="margin:0;font-size:.9rem;" id="user-email-display"></p>
+          </div>
+          <button class="btn btn--small" id="logout-btn" style="margin-left:auto;">Выйти</button>
+        </div>
+
+        <div class="tab-bar">
+          <button class="tab-btn active" data-tab="notes">📋 Записки</button>
+          <button class="tab-btn" data-tab="donations">💛 Пожертвования</button>
+          <button class="tab-btn" data-tab="profile">⚙️ Профиль</button>
+        </div>
+
+        <!-- Записки -->
+        <div class="tab-panel active" id="tab-notes">
+          <div class="section-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+              <h2 style="margin:0;font-size:1.3rem;">Мои записки</h2>
+              <a href="/notes.html" class="btn btn--small">+ Подать записку</a>
+            </div>
+            <div id="notes-list"><p class="muted">Загрузка…</p></div>
+          </div>
+        </div>
+
+        <!-- Пожертвования -->
+        <div class="tab-panel" id="tab-donations">
+          <div class="section-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+              <h2 style="margin:0;font-size:1.3rem;">Мои пожертвования</h2>
+              <a href="/donate.html" class="btn btn--small">+ Пожертвовать</a>
+            </div>
+            <div id="donations-list"><p class="muted">Загрузка…</p></div>
+          </div>
+        </div>
+
+        <!-- Профиль -->
+        <div class="tab-panel" id="tab-profile">
+          <div class="section-card">
+            <h2 style="margin-top:0;font-size:1.3rem;">Настройки профиля</h2>
+            <form id="form-profile" class="form" novalidate>
+              <div class="profile-grid">
+                <label>Имя<input class="input" name="name" autocomplete="name" /></label>
+                <label>Телефон<input class="input" name="phone" type="tel" autocomplete="tel" /></label>
+              </div>
+              <label>Email<input class="input" name="email" type="email" disabled style="opacity:.6;" /></label>
+              <label class="check"><input type="checkbox" name="news_subscribe" /> Получать уведомления о новостях прихода</label>
+              <button type="submit" class="btn btn--primary">Сохранить изменения</button>
+              <p id="profile-status" class="status" role="status"></p>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="footer-root"></div>
+  <script src="/js/layout.js"></script>
+  <script src="/js/account.js"></script>
+</body>
+</html>

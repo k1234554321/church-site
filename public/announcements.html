@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Объявления прихода</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Manrope:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body data-nav="announcements">
+  <div id="header-root"></div>
+
+  <main class="page-main">
+    <div class="container">
+      <div class="page-head">
+        <h1>Объявления</h1>
+        
+      </div>
+
+      <ul class="announce-list">
+        <li>
+          <span class="date">До 15 апреля 2026 г.</span>
+          <p>Приглашаем прихожан на подготовительные беседы перед Пасхой: расписание у дежурного по храму по субботам после Литургии.</p>
+        </li>
+        <li>
+          <span class="date">Крещение</span>
+          <p>Крещение младенцев совершается по согласованию с крестной семьёй по воскресеньям после Литургии. Запись у пономаря Г. С. Молчановой (условная фамилия) по телефону прихода.</p>
+        </li>
+        <li>
+          <span class="date">Требы</span>
+          <p>Срочные записки на ближайшую Литургию принимаются до 18:00 пятницы. Имена можно продублировать через форму на сайте (раздел «Записки») — запись хранится в базе для огласительного списка.</p>
+        </li>
+        <li>
+          <span class="date">Благоустройство</span>
+          <p>В субботу 5 апреля после вечерней планируется уборка территории; теплая одежда, перчатки, лопаты — по возможности принести с собой.</p>
+        </li>
+        <li>
+          <span class="date">Пожертвования</span>
+          <p>Касса при храме работает после богослужений. Для онлайн-учёта заявок используйте страницу «Пожертвование» — данные заносятся в таблицу MySQL.</p>
+        </li>
+      </ul>
+
+      <figure class="content-photo announce-board-figure">
+        <div class="content-photo__slot announce-board-slot">
+          <button
+            type="button"
+            class="announce-board-trigger"
+            id="announce-board-open"
+            data-full-src="/images/obyavleniya-doska.jpg"
+            aria-label="Открыть фото доски объявлений крупно"
+          >
+            <img
+              src="/images/obyavleniya-doska.jpg"
+              alt="Доска объявлений в храме"
+              width="1200"
+              height="900"
+              loading="lazy"
+            />
+          </button>
+        </div>
+        <figcaption>Нажмите на фото — откроется во весь экран, можно рассмотреть мелкий текст. Закрытие: крестик, клик по тёмному фону или клавиша Esc.</figcaption>
+      </figure>
+
+      <div
+        id="photo-lightbox"
+        class="photo-lightbox"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Увеличенное фото"
+      >
+        <button type="button" class="photo-lightbox__close" aria-label="Закрыть">&times;</button>
+        <div class="photo-lightbox__inner">
+          <img id="photo-lightbox-img" src="" alt="" />
+        </div>
+      </div>
+
+      <p style="margin-top:2rem;"><a href="/">← На главную</a></p>
+    </div>
+  </main>
+
+  <div id="footer-root"></div>
+  <script src="/js/layout.js"></script>
+  <script src="/js/announcements-lightbox.js"></script>
+</body>
+</html>

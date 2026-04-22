@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Подача записок</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Manrope:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body data-nav="notes">
+  <div id="header-root"></div>
+
+  <main class="page-main">
+    <div class="container narrow">
+      <div class="page-head">
+        <h1>Подача записок</h1>
+        <p class="lead">Укажите имена в родительном падеже, как принято в церковной записи (например: Иоанна, Марии). </p>
+      </div>
+
+      <form id="form-notes" class="form" novalidate>
+        <label>Имена (через запятую) *<textarea class="input area" name="names" rows="4" required placeholder="Иоанна, Марии, Владимира"></textarea></label>
+        <div class="row">
+          <label>Вид записки<select class="input" name="noteType">
+            <option value="о здравии">О здравии</option>
+            <option value="о упокоении">О упокоении</option>
+            <option value="молебен">Молебен</option>
+            <option value="панихида">Заказная панихида</option>
+          </select></label>
+          <label>Служба / срок<input class="input" name="servedFor" placeholder="Напр.: на ближайшую Литургию, 40 дней" /></label>
+        </div>
+        <label>Храм / придел (если нужно уточнить)<input class="input" name="temple" placeholder="Основной придел / Илиинский" /></label>
+        <label>Контакт (телефон или email)<input class="input" name="contact" /></label>
+        <button type="submit" class="btn btn--primary full">Отправить записку</button>
+        <p id="notes-status" class="status" role="status"></p>
+      </form>
+
+      <p style="margin-top:2rem;"><a href="/">← На главную</a></p>
+    </div>
+  </main>
+
+  <div id="footer-root"></div>
+  <script src="/js/layout.js"></script>
+  <script src="/js/forms.js"></script>
+</body>
+</html>

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Официальный сайт прихода храма святителя Николая Чудотворца в г. Борисоглебске." />
+  <title>Храм святителя Николая — приход г. Борисоглебск</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Manrope:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body data-nav="home">
+  <div id="header-root"></div>
+
+  <section class="hero" id="top">
+    <div class="hero__inner">
+      <p class="hero__eyebrow">Православный приход</p>
+      <h1>Храм святителя Николая Чудотворца</h1>
+      <p>г. Борисоглебск. Единение в молитве, участие в таинствах, помощь ближним. На сайте — история храма, расписание, объявления отделов, подача записок и форма пожертвования. Новости подгружаются с официальных ресурсов Русской Православной Церкви.</p>
+      <div class="hero__actions">
+        <a class="btn btn--primary" href="/schedule.html">Расписание служб</a>
+        <a class="btn btn--ghost" href="/contacts.html">Как добраться</a>
+      </div>
+    </div>
+  </section>
+
+  <main class="page-main">
+    <div class="container">
+      <div class="page-head">
+        <h2>Сегодня в храме</h2>
+        <p class="lead">
+          Быстрое окно информации для прихожан: расписание, возможность подать записку, пожертвование и свежие новости.
+        </p>
+      </div>
+
+      <div class="schedule-grid">
+        <article class="schedule-card">
+          <h2 style="margin:0 0 .75rem;">Вечерние службы</h2>
+          <ul>
+            <li><strong>17:00</strong> — вечерня</li>
+            <li><strong>18:30</strong> — чтение акафиста (по дням)</li>
+          </ul>
+        </article>
+        <article class="schedule-card">
+          <h2 style="margin:0 0 .75rem;">Утренние службы</h2>
+          <ul>
+            <li><strong>08:00</strong> — молебен</li>
+            <li><strong>09:00</strong> — Божественная литургия</li>
+          </ul>
+        </article>
+        <article class="schedule-card">
+          <h2 style="margin:0 0 .75rem;">Важно сегодня</h2>
+          <ul>
+            <li>Записки можно подать заранее на сайте</li>
+            <li>Пожертвования принимаются у киоска (карта/СБП)</li>
+            <li>Телефон и адрес — в разделе «Контакты»</li>
+          </ul>
+        </article>
+      </div>
+
+      <div class="two-column" style="margin-top:2rem;">
+        <section class="card" style="padding:1.5rem;">
+          <h2 style="margin-top:0;">Подать записку</h2>
+          <p class="muted" style="margin:0 0 1rem;">
+            Выберите вид записки, укажите имена и срок — данные сохраняются в базе прихода.
+          </p>
+          <div class="link-cards" style="grid-template-columns:1fr; margin-top:1rem;">
+            <a class="btn btn--primary" href="/notes.html" style="text-decoration:none;">
+              Перейти к форме
+            </a>
+          </div>
+        </section>
+
+        <section class="card" style="padding:1.5rem;">
+          <h2 style="margin-top:0;">Пожертвование</h2>
+          <p class="muted" style="margin:0 0 1rem;">
+            Сумма и назначение фиксируются на сервере. Оплата у киоска в храме — карта или СБП.
+          </p>
+          <div class="content-photo" style="margin:0 0 1rem;">
+            <div class="content-photo__slot" style="min-height:200px;padding:0;">
+              <img src="/images/obyavleniya-doska.jpg" alt="Оплата пожертвований в храме" />
+            </div>
+          </div>
+          <a class="btn btn--primary btn--block" href="/donate.html" style="text-decoration:none;">
+            Открыть форму
+          </a>
+        </section>
+      </div>
+
+      <div class="page-head" style="margin-top:2.5rem;">
+        <h2>Новости сегодня</h2>
+        <p class="lead">Лента: <strong>Патриархия.ru</strong> (RSS) и <strong>vob-eparhia.ru</strong> (лента новостей епархии). Кнопка «Обновить» подгружает свежие публикации.</p>
+      </div>
+
+      <div class="news-toolbar" style="margin-top:-1.25rem;">
+        <label class="field-inline">
+          <span class="visually-hidden">Источник</span>
+          <select id="home-news-source" class="input">
+            <option value="all" selected>Все источники</option>
+            <option value="patriarchia">Патриархия.ru</option>
+            <option value="vob_eparhia">Воронежская епархия</option>
+          </select>
+        </label>
+        <button type="button" class="btn btn--small" id="home-news-refresh">Обновить</button>
+      </div>
+
+      <div id="home-news-feed" class="news-feed" aria-live="polite">
+        <p class="muted">Загрузка новостей…</p>
+      </div>
+
+      <div class="page-head" style="margin-top:2.5rem;">
+        <h2>Галерея</h2>
+        <p class="lead">Небольшая подборка фотографий (положи свои картинки в `public/images`).</p>
+      </div>
+
+      <div class="home-gallery">
+        <a class="home-gallery__item" href="/history.html">
+          <img src="/images/glavnaya-hram.jpg" alt="Храм святителя Николая" />
+          <span class="home-gallery__label">История и вид храма</span>
+        </a>
+        <a class="home-gallery__item" href="/schedule.html">
+          <img src="/images/istoriya-01.jpg" alt="История прихода" />
+          <span class="home-gallery__label">Расписание богослужений</span>
+        </a>
+        <a class="home-gallery__item" href="/departments.html">
+          <img src="/images/otdel-shkola.jpg" alt="Отделы прихода" />
+          <span class="home-gallery__label">Отделы и занятия</span>
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <div id="footer-root"></div>
+  <script src="/js/layout.js"></script>
+  <script src="/js/home.js"></script>
+</body>
+</html>

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Администратор — Храм святителя Николая</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Manrope:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/styles.css" />
+  <style>
+    .admin-wrap { max-width: 1000px; }
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+    .stat-card { background: var(--surface); border-radius: var(--radius); padding: 1.25rem 1.5rem; box-shadow: var(--shadow); border-left: 4px solid var(--gold); }
+    .stat-card__num { font-family: var(--font-display); font-size: 2rem; font-weight: 700; color: var(--navy); line-height: 1; margin-bottom: .2rem; }
+    .stat-card__label { font-size: .8rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+    .tab-bar { display: flex; gap: .5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .tab-btn {
+      padding: .5rem 1.1rem; border-radius: 999px; border: 2px solid transparent;
+      font: inherit; font-weight: 600; font-size: .9rem; cursor: pointer;
+      background: var(--surface); color: var(--navy-soft);
+      border-color: rgba(30,45,61,.12); transition: all .18s;
+    }
+    .tab-btn.active { background: var(--navy); color: #f0ebe3; border-color: var(--navy); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    .section-card { background: var(--surface); border-radius: var(--radius); padding: 1.5rem; box-shadow: var(--shadow); margin-bottom: 1.5rem; }
+    .history-table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    .history-table th { text-align: left; padding: .5rem .65rem; color: var(--muted); font-weight: 600; border-bottom: 2px solid rgba(30,45,61,.1); white-space: nowrap; }
+    .history-table td { padding: .55rem .65rem; border-bottom: 1px solid rgba(30,45,61,.06); vertical-align: top; }
+    .history-table tr:last-child td { border-bottom: none; }
+    .history-table tr:hover td { background: rgba(184,149,74,.04); }
+    .badge { display: inline-block; padding: .15rem .55rem; border-radius: 999px; font-size: .75rem; font-weight: 700; }
+    .badge-new { background: rgba(184,149,74,.15); color: var(--gold-dim); }
+    .badge-processing { background: rgba(45,74,94,.12); color: var(--accent); }
+    .badge-done { background: rgba(60,140,80,.12); color: #2d7a44; }
+    .btn-icon { background: none; border: none; cursor: pointer; padding: .2rem .4rem; border-radius: 6px; font-size: 1rem; transition: background .15s; }
+    .btn-icon:hover { background: rgba(30,45,61,.08); }
+    .btn-danger:hover { background: rgba(200,50,50,.1); }
+    .filter-bar { display: flex; gap: .75rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
+    .pager { display: flex; gap: .5rem; margin-top: 1rem; align-items: center; }
+    select.input { appearance: auto; }
+    .news-form { display: grid; gap: .75rem; }
+    .auth-wrap { max-width: 400px; margin: 0 auto; }
+    .news-item-row { display: flex; gap: .75rem; align-items: flex-start; padding: .85rem 0; border-bottom: 1px solid rgba(30,45,61,.06); }
+    .news-item-row:last-child { border-bottom: none; }
+    .news-item-row__body { flex: 1; min-width: 0; }
+    .news-item-row__title { font-weight: 700; margin: 0 0 .2rem; color: var(--navy); font-size: .95rem; }
+    .news-item-row__meta { font-size: .8rem; color: var(--muted); }
+    .news-item-row__text { font-size: .88rem; color: var(--muted); margin: .2rem 0 0; }
+  </style>
+</head>
+<body>
+  <!-- Нет общего header — отдельная защищённая страница -->
+  <header class="site-header" style="position:sticky;top:0;z-index:100;">
+    <div class="header-inner">
+      <a class="brand" href="/">
+        <span class="brand__title">Храм святителя Николая</span>
+        <span class="brand__sub">Панель управления</span>
+      </a>
+      <div style="display:flex;gap:.75rem;align-items:center;">
+        <a href="/" class="btn btn--small">← Сайт</a>
+        <button class="btn btn--small" id="admin-logout" style="display:none;">Выйти</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-main">
+    <div class="container admin-wrap">
+
+      <!-- Форма входа -->
+      <div id="admin-auth">
+        <div class="auth-wrap" style="margin-top:2rem;">
+          <div class="section-card">
+            <h2 style="margin-top:0;">Вход в панель управления</h2>
+            <form id="form-admin-login" class="form" novalidate>
+              <label>Логин<input class="input" name="login" autocomplete="username" /></label>
+              <label>Пароль<input class="input" name="password" type="password" autocomplete="current-password" /></label>
+              <button type="submit" class="btn btn--primary full">Войти</button>
+              <p id="admin-login-status" class="status" role="status"></p>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Панель (после входа) -->
+      <div id="admin-panel" style="display:none;">
+        <div class="page-head" style="margin-top:1.5rem;">
+          <h1>Панель управления приходом</h1>
+        </div>
+
+        <!-- Статистика -->
+        <div class="stats-row" id="admin-stats">
+          <div class="stat-card"><div class="stat-card__num" id="stat-notes">—</div><div class="stat-card__label">Записок всего</div></div>
+          <div class="stat-card"><div class="stat-card__num" id="stat-notes-new">—</div><div class="stat-card__label">Новых записок</div></div>
+          <div class="stat-card"><div class="stat-card__num" id="stat-donations">—</div><div class="stat-card__label">Пожертвований</div></div>
+          <div class="stat-card"><div class="stat-card__num" id="stat-donations-sum">—</div><div class="stat-card__label">Сумма, ₽</div></div>
+          <div class="stat-card"><div class="stat-card__num" id="stat-users">—</div><div class="stat-card__label">Прихожан</div></div>
+        </div>
+
+        <div class="tab-bar">
+          <button class="tab-btn active" data-tab="notes">📋 Записки</button>
+          <button class="tab-btn" data-tab="donations">💛 Пожертвования</button>
+          <button class="tab-btn" data-tab="users">👥 Прихожане</button>
+          <button class="tab-btn" data-tab="localnews">📰 Новости прихода</button>
+        </div>
+
+        <!-- Записки -->
+        <div class="tab-panel active" id="tab-notes">
+          <div class="section-card">
+            <h2 style="margin-top:0;font-size:1.2rem;">Записки</h2>
+            <div class="filter-bar">
+              <label style="display:flex;gap:.4rem;align-items:center;font-size:.9rem;">
+                Статус:
+                <select class="input" id="notes-filter" style="padding:.35rem .65rem;">
+                  <option value="">Все</option>
+                  <option value="new">Новые</option>
+                  <option value="processing">Принятые</option>
+                  <option value="done">Выполненные</option>
+                </select>
+              </label>
+              <button class="btn btn--small" id="notes-refresh">Обновить</button>
+            </div>
+            <div style="overflow-x:auto;">
+              <table class="history-table">
+                <thead><tr><th>Дата</th><th>Имена</th><th>Вид</th><th>Срок</th><th>Контакт</th><th>Прихожанин</th><th>Статус</th><th></th></tr></thead>
+                <tbody id="notes-tbody"><tr><td colspan="8" class="muted" style="text-align:center;padding:1.5rem;">Загрузка…</td></tr></tbody>
+              </table>
+            </div>
+            <div class="pager" id="notes-pager"></div>
+          </div>
+        </div>
+
+        <!-- Пожертвования -->
+        <div class="tab-panel" id="tab-donations">
+          <div class="section-card">
+            <h2 style="margin-top:0;font-size:1.2rem;">Пожертвования</h2>
+            <div style="overflow-x:auto;">
+              <table class="history-table">
+                <thead><tr><th>Дата</th><th>Имя</th><th>Email</th><th>Сумма</th><th>Назначение</th><th>Прихожанин</th><th>Примечание</th></tr></thead>
+                <tbody id="donations-tbody"><tr><td colspan="7" class="muted" style="text-align:center;padding:1.5rem;">Загрузка…</td></tr></tbody>
+              </table>
+            </div>
+            <div class="pager" id="donations-pager"></div>
+          </div>
+        </div>
+
+        <!-- Прихожане -->
+        <div class="tab-panel" id="tab-users">
+          <div class="section-card">
+            <h2 style="margin-top:0;font-size:1.2rem;">Зарегистрированные прихожане</h2>
+            <div style="overflow-x:auto;">
+              <table class="history-table">
+                <thead><tr><th>Дата</th><th>Имя</th><th>Email</th><th>Телефон</th><th>Новости</th><th></th></tr></thead>
+                <tbody id="users-tbody"><tr><td colspan="6" class="muted" style="text-align:center;padding:1.5rem;">Загрузка…</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Локальные новости -->
+        <div class="tab-panel" id="tab-localnews">
+          <div class="section-card" style="margin-bottom:1rem;">
+            <h2 style="margin-top:0;font-size:1.2rem;">Добавить новость прихода</h2>
+            <form id="form-local-news" class="news-form">
+              <label>Заголовок *<input class="input" name="title" required /></label>
+              <label>Текст *<textarea class="input area" name="body" rows="4" required></textarea></label>
+              <label>Автор (необязательно)<input class="input" name="author" /></label>
+              <button type="submit" class="btn btn--primary">Опубликовать</button>
+              <p id="localnews-status" class="status" role="status"></p>
+            </form>
+          </div>
+          <div class="section-card">
+            <h2 style="margin-top:0;font-size:1.2rem;">Опубликованные новости</h2>
+            <div id="localnews-list"><p class="muted">Загрузка…</p></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <script src="/js/admin.js"></script>
+</body>
+</html>

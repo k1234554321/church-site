@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Пожертвование</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Manrope:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body data-nav="donate">
+  <div id="header-root"></div>
+
+  <main class="page-main">
+    <div class="container donate-wrap">
+      <div class="donate-ornament" aria-hidden="true">✦</div>
+      <div class="donate-ornament donate-ornament--2" aria-hidden="true">✧</div>
+      <div class="two-column">
+        <section class="prose" aria-label="Информация об оплате">
+          <div class="page-head">
+            <h1 class="reveal">Пожертвование храму</h1>
+            <p class="lead reveal">
+              Сегодня пожертвования принимаются в храме: можно оплатить через терминал картой или по СБП у свечного киоска.
+              Оставьте заявку на сайте — в базе прихода зафиксируется назначение и сумма.
+            </p>
+          </div>
+
+          <figure class="content-photo reveal" style="margin:0 0 1.25rem;">
+            <div class="content-photo__slot announce-board-slot" style="padding:0;min-height:260px;">
+              <img
+                src="/images/glavnaya-hram.jpg"
+                alt="Храм святителя Николая Чудотворца"
+                width="1100"
+                height="700"
+                loading="lazy"
+              />
+            </div>
+            <figcaption>У свечного киоска сегодня доступна оплата картой и по СБП.</figcaption>
+          </figure>
+
+          <div class="hint-box reveal">
+            <strong>Как это работает:</strong> вы выбираете сумму и назначение, указываете контакт (если нужно) и отправляете заявку.
+            После отправки вы можете оплатить в храме тем способом, который выбрали.
+          </div>
+        </section>
+
+        <section>
+          <form id="form-donate" class="form" novalidate>
+            <div class="page-head" style="margin-bottom:1.25rem;">
+              <h2 class="reveal" style="margin:0 0 .35rem;">Форма пожертвования</h2>
+              <p class="lead reveal" style="margin:0;color:var(--muted);font-size:1rem;">
+                Заполните поля — заявка сохранится в базе прихода.
+              </p>
+            </div>
+
+            <div class="row reveal">
+              <label>Сумма (₽) *<input class="input" name="amount" type="number" min="1" step="0.01" required placeholder="500" /></label>
+              <label>Назначение *<select class="input" name="purpose" required>
+                <option value="">Выберите</option>
+                <option value="нужды храма">Нужды храма</option>
+                <option value="восстановление и ремонт">Восстановление и ремонт</option>
+                <option value="социальное служение">Социальное служение</option>
+                <option value="воскресная школа">Воскресная школа</option>
+                <option value="иное">Иное (уточнить в сообщении)</option>
+              </select></label>
+            </div>
+
+            <div class="row reveal">
+              <label>Имя<input class="input" name="name" autocomplete="name" /></label>
+              <label>Email<input class="input" name="email" type="email" autocomplete="email" /></label>
+            </div>
+
+            <div class="reveal" style="margin-top:1.1rem;">
+              <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem;">
+                <h2 style="margin:0;font-size:1.15rem;">Способ оплаты</h2>
+                <span class="muted" style="font-size:.9rem;">Карта или СБП — у киоска в храме</span>
+              </div>
+
+              <div class="row" style="grid-template-columns:1fr 1fr;gap:1rem;">
+                <label class="check donate-method" style="margin:0;" data-method-label="card">
+                  <input type="radio" name="paymentMethod" value="card" checked />
+                  <span class="donate-method__inner">
+                    <span class="donate-method__title">Оплата картой</span>
+                    <span class="donate-method__sub">Терминал у киоска</span>
+                  </span>
+                </label>
+
+                <label class="check donate-method" style="margin:0;" data-method-label="sbp">
+                  <input type="radio" name="paymentMethod" value="sbp" />
+                  <span class="donate-method__inner">
+                    <span class="donate-method__title">Оплата по СБП</span>
+                    <span class="donate-method__sub">Смартфон + подтверждение</span>
+                  </span>
+                </label>
+              </div>
+
+              <div id="payment-card" class="payment-block" style="margin-top:1rem;">
+                <div class="row">
+                  <label>Карта: последние 4 цифры *<input class="input" name="cardLast4" inputmode="numeric" pattern="[0-9]*" placeholder="1234" /></label>
+                  <label>Имя плательщика (как в карте)<input class="input" name="cardHolder" autocomplete="name" placeholder="Иван Иванов" /></label>
+                </div>
+              </div>
+
+              <div id="payment-sbp" class="payment-block" style="display:none;margin-top:1rem;">
+                <div class="row">
+                  <label>Телефон для СБП *<input class="input" name="sbpPhone" inputmode="tel" placeholder="+7 (9xx) xxx-xx-xx" /></label>
+                  <label>Имя плательщика (необязательно)<input class="input" name="sbpHolder" autocomplete="name" placeholder="Иван Иванов" /></label>
+                </div>
+              </div>
+            </div>
+
+            <label class="reveal">Сообщение<textarea class="input area" name="message" rows="3" placeholder="Например: на восстановление иконостаса"></textarea></label>
+            <label class="check reveal"><input type="checkbox" name="isAnonymous" /> Пожертвовать анонимно (имя не сохраняется)</label>
+
+            <button type="submit" class="btn btn--primary full reveal">Отправить заявку</button>
+            <p id="donate-status" class="status" role="status"></p>
+          </form>
+        </section>
+      </div>
+
+      <p style="margin-top:2rem;text-align:center;"><a href="/">← На главную</a></p>
+    </div>
+  </main>
+
+  <div id="footer-root"></div>
+  <script src="/js/layout.js"></script>
+  <script src="/js/forms.js"></script>
+</body>
+</html>
