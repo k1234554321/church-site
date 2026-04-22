@@ -9,6 +9,8 @@ const crypto = require("crypto");
 const app = express();
 const PORT = process.env.PORT || 3000;
 const AUTH_SECRET = process.env.AUTH_SECRET || process.env.JWT_SECRET || "dev-secret-change-me";
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
+const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
 
 const dbConfig = {
   host: process.env.MYSQL_HOST || "127.0.0.1",
@@ -151,9 +153,126 @@ async function initDatabase() {
         author VARCHAR(255) NULL
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS chatbot_messages (
+        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        user_id INT UNSIGNED NULL,
+        question TEXT NOT NULL,
+        answer TEXT NOT NULL,
+        source VARCHAR(32) NOT NULL DEFAULT 'local',
+        ip VARCHAR(64) NULL,
+        user_agent VARCHAR(255) NULL
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
   } finally {
     conn.release();
   }
+}
+
+const BOT_KNOWLEDGE = [
+  {
+    keywords: ["молитв", "как молиться", "утренн", "вечерн"],
+    answer:
+      "Начните с краткой молитвы своими словами и одной из известных молитв (например, «Отче наш»). Важно не количество слов, а внимательность, покаяние и благодарность Богу.",
+    references: ["Мф. 6:9-13", "1 Фес. 5:17"],
+  },
+  {
+    keywords: ["пост", "великий пост", "зачем пост"],
+    answer:
+      "Пост в христианской традиции — это не только ограничение в пище, но и работа над сердцем: молитва, милосердие, борьба со страстями и примирение с ближними.",
+    references: ["Мф. 6:16-18", "Ис. 58:6-7"],
+  },
+  {
+    keywords: ["покаян", "исповед", "грех"],
+    answer:
+      "Покаяние — это изменение ума и жизни, не только сожаление. В Таинстве Исповеди человек открывает грехи Богу в присутствии священника и получает разрешительную молитву.",
+    references: ["1 Ин. 1:9", "Лк. 15:11-32"],
+  },
+  {
+    keywords: ["причаст", "евхарист", "таинство"],
+    answer:
+      "Причастие — центральное Таинство Церкви. К нему обычно готовятся молитвой, покаянием, постом и примирением с людьми. Конкретная практика уточняется у священника прихода.",
+    references: ["Ин. 6:53-56", "1 Кор. 11:23-29"],
+  },
+  {
+    keywords: ["любовь", "ближн", "прощ"],
+    answer:
+      "Христианская жизнь строится на любви к Богу и ближнему. Прощение — это не оправдание зла, а освобождение сердца от ненависти и доверие Божьему суду.",
+    references: ["Мф. 22:37-39", "Мф. 6:14-15", "1 Кор. 13:4-7"],
+  },
+];
+
+function normalizeText(s) {
+  return String(s || "")
+    .toLowerCase()
+    .replace(/ё/g, "е")
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isReligiousQuestion(questionNorm) {
+  const keys = [
+    "бог", "господ", "христ", "иисус", "библи", "евангел", "церк", "православ", "молит",
+    "пост", "грех", "покаян", "исповед", "причаст", "таинств", "священ", "свят", "религи",
+  ];
+  return keys.some((k) => questionNorm.includes(k));
+}
+
+function localReligiousAnswer(question) {
+  const q = normalizeText(question);
+  for (const item of BOT_KNOWLEDGE) {
+    if (item.keywords.some((k) => q.includes(normalizeText(k)))) {
+      return { answer: item.answer, references: item.references, source: "local" };
+    }
+  }
+  if (!isReligiousQuestion(q)) {
+    return {
+      answer:
+        "Я отвечаю только на вопросы о христианстве, молитве, церковной жизни и Библии. Задайте, пожалуйста, вопрос по этой теме.",
+      references: [],
+      source: "local",
+    };
+  }
+  return {
+    answer:
+      "Это хороший вопрос. Если хотите, уточните контекст (например: молитва, пост, покаяние, Евангелие), и я дам более точный ответ с цитатами из Библии.",
+    references: [],
+    source: "local",
+  };
+}
+
+async function askOpenAI(question) {
+  if (!OPENAI_API_KEY) return null;
+  const q = normalizeText(question);
+  if (!isReligiousQuestion(q)) return null;
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: OPENAI_MODEL,
+      temperature: 0.4,
+      messages: [
+        {
+          role: "system",
+          content:
+            "Ты помощник сайта православного прихода. Отвечай по-русски, бережно и кратко, только на религиозные темы: Библия, молитва, церковная жизнь, христианство. Не придумывай факты. Если вопрос вне темы — вежливо откажись.",
+        },
+        { role: "user", content: String(question || "").slice(0, 1000) },
+      ],
+    }),
+  });
+  if (!response.ok) return null;
+  const data = await response.json();
+  const text = data && data.choices && data.choices[0] && data.choices[0].message
+    ? String(data.choices[0].message.content || "").trim()
+    : "";
+  if (!text) return null;
+  return { answer: text, references: [], source: "openai" };
 }
 
 app.use(express.json({ limit: "1mb" }));
@@ -241,6 +360,46 @@ function newsSortScore(it) {
 
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true, service: "prichod-api", db: "mysql" });
+});
+
+app.post("/api/chatbot/ask", async (req, res) => {
+  const question = String((req.body || {}).question || "").trim();
+  if (!question) return res.status(400).json({ error: "Введите вопрос." });
+  if (question.length > 1200) return res.status(400).json({ error: "Слишком длинный вопрос." });
+  try {
+    let result = await askOpenAI(question);
+    if (!result) result = localReligiousAnswer(question);
+    if (pool) {
+      const user = await getAuthUser(req);
+      await pool.execute(
+        `INSERT INTO chatbot_messages (user_id, question, answer, source, ip, user_agent)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          user ? user.id : null,
+          question,
+          result.answer,
+          result.source || "local",
+          String(req.ip || "").slice(0, 64) || null,
+          String(req.headers["user-agent"] || "").slice(0, 255) || null,
+        ]
+      );
+    }
+    res.json({
+      ok: true,
+      answer: result.answer,
+      references: result.references || [],
+      source: result.source || "local",
+    });
+  } catch (e) {
+    console.error("chatbot error:", e.message);
+    const fallback = localReligiousAnswer(question);
+    res.json({
+      ok: true,
+      answer: fallback.answer,
+      references: fallback.references || [],
+      source: "fallback",
+    });
+  }
 });
 
 app.post("/api/auth/register", async (req, res) => {

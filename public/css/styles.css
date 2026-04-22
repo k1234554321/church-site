@@ -1111,3 +1111,97 @@ a:hover {
     grid-template-columns: 1fr;
   }
 }
+
+.faith-bot {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 1200;
+  width: min(360px, calc(100vw - 24px));
+}
+
+.faith-bot__toggle {
+  margin-left: auto;
+  display: block;
+  border: 0;
+  border-radius: 999px;
+  background: var(--navy);
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  padding: 0.7rem 1rem;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+}
+
+.faith-bot__panel {
+  margin-top: 0.6rem;
+  background: var(--surface);
+  border: 1px solid rgba(30, 45, 61, 0.12);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  display: none;
+}
+
+.faith-bot__panel.is-open {
+  display: block;
+}
+
+.faith-bot__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.7rem 0.9rem;
+  border-bottom: 1px solid rgba(30, 45, 61, 0.1);
+  background: rgba(30, 45, 61, 0.04);
+}
+
+.faith-bot__close {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.faith-bot__messages {
+  max-height: 280px;
+  overflow: auto;
+  padding: 0.9rem;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.faith-bot__msg {
+  margin: 0;
+  padding: 0.55rem 0.7rem;
+  border-radius: 10px;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.faith-bot__msg--bot {
+  background: rgba(30, 45, 61, 0.07);
+}
+
+.faith-bot__msg--user {
+  background: rgba(184, 149, 74, 0.15);
+}
+
+.faith-bot__form {
+  padding: 0.8rem;
+  border-top: 1px solid rgba(30, 45, 61, 0.1);
+}
+
+.faith-bot__input {
+  width: 100%;
+  min-height: 66px;
+  resize: vertical;
+  border: 1px solid rgba(30, 45, 61, 0.2);
+  border-radius: 10px;
+  padding: 0.6rem 0.7rem;
+  font: inherit;
+  margin-bottom: 0.6rem;
+}

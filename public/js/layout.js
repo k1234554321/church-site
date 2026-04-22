@@ -32,6 +32,102 @@
     });
   }
 
+  function escapeHtml(s) {
+    return String(s || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  function initFaithBot() {
+    if (document.getElementById("faith-bot")) return;
+    var root = document.createElement("section");
+    root.id = "faith-bot";
+    root.className = "faith-bot";
+    root.innerHTML =
+      '<button type="button" class="faith-bot__toggle" id="faith-bot-toggle" aria-expanded="false" aria-controls="faith-bot-panel">✝ Вопрос священнику-боту</button>' +
+      '<div class="faith-bot__panel" id="faith-bot-panel" aria-hidden="true">' +
+      '<div class="faith-bot__head"><strong>Помощник прихода</strong><button type="button" class="faith-bot__close" id="faith-bot-close" aria-label="Закрыть">×</button></div>' +
+      '<div class="faith-bot__messages" id="faith-bot-messages"></div>' +
+      '<form class="faith-bot__form" id="faith-bot-form">' +
+      '<textarea class="faith-bot__input" id="faith-bot-input" placeholder="Например: зачем нужен пост?" required></textarea>' +
+      '<button class="btn btn--primary" type="submit">Отправить</button>' +
+      "</form>" +
+      "</div>";
+    document.body.appendChild(root);
+
+    var panel = document.getElementById("faith-bot-panel");
+    var toggle = document.getElementById("faith-bot-toggle");
+    var close = document.getElementById("faith-bot-close");
+    var form = document.getElementById("faith-bot-form");
+    var input = document.getElementById("faith-bot-input");
+    var messages = document.getElementById("faith-bot-messages");
+
+    function addMessage(role, text) {
+      var p = document.createElement("p");
+      p.className = "faith-bot__msg faith-bot__msg--" + role;
+      p.innerHTML = escapeHtml(text).replace(/\n/g, "<br>");
+      messages.appendChild(p);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    function openPanel() {
+      panel.classList.add("is-open");
+      panel.setAttribute("aria-hidden", "false");
+      toggle.setAttribute("aria-expanded", "true");
+      input.focus();
+    }
+
+    function closePanel() {
+      panel.classList.remove("is-open");
+      panel.setAttribute("aria-hidden", "true");
+      toggle.setAttribute("aria-expanded", "false");
+    }
+
+    toggle.addEventListener("click", function () {
+      if (panel.classList.contains("is-open")) closePanel();
+      else openPanel();
+    });
+    close.addEventListener("click", closePanel);
+
+    addMessage(
+      "bot",
+      "Здравствуйте. Я отвечаю на вопросы о христианстве, молитве и Библии. Чем могу помочь?"
+    );
+
+    form.addEventListener("submit", async function (ev) {
+      ev.preventDefault();
+      var q = String(input.value || "").trim();
+      if (!q) return;
+      addMessage("user", q);
+      input.value = "";
+      addMessage("bot", "Думаю над ответом…");
+      var loading = messages.lastElementChild;
+      try {
+        var r = await fetch("/api/chatbot/ask", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question: q }),
+        });
+        var d = await r.json();
+        if (loading) loading.remove();
+        if (!r.ok) throw new Error(d.error || "Ошибка");
+        var refs = d.references && d.references.length ? "\n\nСсылки: " + d.references.join(", ") : "";
+        addMessage("bot", (d.answer || "Не удалось сформировать ответ.") + refs);
+      } catch (e) {
+        if (loading) loading.remove();
+        addMessage("bot", "Не удалось получить ответ. Попробуйте еще раз.");
+      }
+    });
+
+    setTimeout(function () {
+      if (sessionStorage.getItem("faith_bot_greeted")) return;
+      sessionStorage.setItem("faith_bot_greeted", "1");
+      openPanel();
+      addMessage("bot", "Рада помочь. Можете спросить, например: «Что значит покаяние?»");
+    }, 5000);
+  }
+
   document.addEventListener("DOMContentLoaded", async function () {
     var active = document.body.getAttribute("data-nav") || "home";
     var hr = document.getElementById("header-root");
@@ -54,6 +150,7 @@
     markActive(active);
     wireNav();
     setYear();
+    initFaithBot();
 
     // Универсальные анимации для современного UI (без правки каждой страницы).
     // Мы добавляем классы и запускаем reveal при попадании в область видимости.
