@@ -9,8 +9,11 @@ const crypto = require("crypto");
 const app = express();
 const PORT = process.env.PORT || 3000;
 const AUTH_SECRET = process.env.AUTH_SECRET || process.env.JWT_SECRET || "dev-secret-change-me";
+const AI_PROVIDER = String(process.env.AI_PROVIDER || "openai").toLowerCase();
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || "";
+const DEEPSEEK_MODEL = process.env.DEEPSEEK_MODEL || "deepseek-chat";
 
 const dbConfig = {
   host: process.env.MYSQL_HOST || "127.0.0.1",
@@ -230,7 +233,7 @@ function localReligiousAnswer(question) {
   if (!isReligiousQuestion(q)) {
     return {
       answer:
-        "Я отвечаю только на вопросы о христианстве, молитве, церковной жизни и Библии. Задайте, пожалуйста, вопрос по этой теме.",
+        "Могу помочь с вопросами о вере, Библии, молитве и церковной жизни. Если хотите, задай вопрос свободно своими словами — отвечу проще и подробнее.",
       references: [],
       source: "local",
     };
@@ -243,10 +246,21 @@ function localReligiousAnswer(question) {
   };
 }
 
-async function askOpenAI(question) {
+function sanitizeChatHistory(history) {
+  if (!Array.isArray(history)) return [];
+  return history
+    .filter((m) => m && (m.role === "user" || m.role === "assistant"))
+    .slice(-12)
+    .map((m) => ({
+      role: m.role,
+      content: String(m.content || "").slice(0, 900),
+    }))
+    .filter((m) => m.content.trim().length > 0);
+}
+
+async function askOpenAI(question, history) {
   if (!OPENAI_API_KEY) return null;
-  const q = normalizeText(question);
-  if (!isReligiousQuestion(q)) return null;
+  const prior = sanitizeChatHistory(history);
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -260,19 +274,65 @@ async function askOpenAI(question) {
         {
           role: "system",
           content:
-            "Ты помощник сайта православного прихода. Отвечай по-русски, бережно и кратко, только на религиозные темы: Библия, молитва, церковная жизнь, христианство. Не придумывай факты. Если вопрос вне темы — вежливо откажись.",
+            "Ты православный AI-помощник сайта прихода. Отвечай по-русски, естественно и по-человечески, как адекватный собеседник. Держи фокус на теме прихода: христианство, Библия, молитва, церковная жизнь, нравственные вопросы и духовная практика. Давай полезные и понятные ответы обычно в 3-8 предложений. Если уместно, добавляй краткие библейские ссылки. Не выдумывай факты. На смежные бытовые вопросы отвечай кратко и мягко связывай с темой веры, без резких отказов.",
         },
+        ...prior,
         { role: "user", content: String(question || "").slice(0, 1000) },
       ],
     }),
   });
-  if (!response.ok) return null;
+  if (!response.ok) {
+    const errText = await response.text().catch(() => "");
+    console.error("openai chat error:", response.status, errText.slice(0, 500));
+    return null;
+  }
   const data = await response.json();
   const text = data && data.choices && data.choices[0] && data.choices[0].message
     ? String(data.choices[0].message.content || "").trim()
     : "";
   if (!text) return null;
   return { answer: text, references: [], source: "openai" };
+}
+
+async function askDeepSeek(question, history) {
+  if (!DEEPSEEK_API_KEY) return null;
+  const prior = sanitizeChatHistory(history);
+  const response = await fetch("https://api.deepseek.com/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${DEEPSEEK_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: DEEPSEEK_MODEL,
+      temperature: 0.4,
+      messages: [
+        {
+          role: "system",
+          content:
+            "Ты православный AI-помощник сайта прихода. Отвечай по-русски, естественно и по-человечески. Фокус: христианство, Библия, молитва, церковная жизнь, нравственные вопросы и духовная практика. Отвечай ясно и полезно, обычно 3-8 предложений. Если уместно, добавляй короткие библейские ссылки. Не выдумывай факты.",
+        },
+        ...prior,
+        { role: "user", content: String(question || "").slice(0, 1000) },
+      ],
+    }),
+  });
+  if (!response.ok) {
+    const errText = await response.text().catch(() => "");
+    console.error("deepseek chat error:", response.status, errText.slice(0, 500));
+    return null;
+  }
+  const data = await response.json();
+  const text = data && data.choices && data.choices[0] && data.choices[0].message
+    ? String(data.choices[0].message.content || "").trim()
+    : "";
+  if (!text) return null;
+  return { answer: text, references: [], source: "deepseek" };
+}
+
+async function askAI(question, history) {
+  if (AI_PROVIDER === "deepseek") return askDeepSeek(question, history);
+  return askOpenAI(question, history);
 }
 
 app.use(express.json({ limit: "1mb" }));
@@ -364,10 +424,11 @@ app.get("/api/health", (_req, res) => {
 
 app.post("/api/chatbot/ask", async (req, res) => {
   const question = String((req.body || {}).question || "").trim();
+  const history = (req.body || {}).history;
   if (!question) return res.status(400).json({ error: "Введите вопрос." });
   if (question.length > 1200) return res.status(400).json({ error: "Слишком длинный вопрос." });
   try {
-    let result = await askOpenAI(question);
+    let result = await askAI(question, history);
     if (!result) result = localReligiousAnswer(question);
     if (pool) {
       const user = await getAuthUser(req);

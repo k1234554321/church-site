@@ -62,6 +62,7 @@
     var form = document.getElementById("faith-bot-form");
     var input = document.getElementById("faith-bot-input");
     var messages = document.getElementById("faith-bot-messages");
+    var history = [];
 
     function addMessage(role, text) {
       var p = document.createElement("p");
@@ -69,6 +70,11 @@
       p.innerHTML = escapeHtml(text).replace(/\n/g, "<br>");
       messages.appendChild(p);
       messages.scrollTop = messages.scrollHeight;
+    }
+
+    function remember(role, text) {
+      history.push({ role: role, content: String(text || "") });
+      if (history.length > 20) history = history.slice(-20);
     }
 
     function openPanel() {
@@ -94,12 +100,14 @@
       "bot",
       "Здравствуйте. Я отвечаю на вопросы о христианстве, молитве и Библии. Чем могу помочь?"
     );
+    remember("assistant", "Здравствуйте. Я отвечаю на вопросы о христианстве, молитве и Библии. Чем могу помочь?");
 
     form.addEventListener("submit", async function (ev) {
       ev.preventDefault();
       var q = String(input.value || "").trim();
       if (!q) return;
       addMessage("user", q);
+      remember("user", q);
       input.value = "";
       addMessage("bot", "Думаю над ответом…");
       var loading = messages.lastElementChild;
@@ -107,16 +115,19 @@
         var r = await fetch("/api/chatbot/ask", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question: q }),
+          body: JSON.stringify({ question: q, history: history }),
         });
         var d = await r.json();
         if (loading) loading.remove();
         if (!r.ok) throw new Error(d.error || "Ошибка");
         var refs = d.references && d.references.length ? "\n\nСсылки: " + d.references.join(", ") : "";
-        addMessage("bot", (d.answer || "Не удалось сформировать ответ.") + refs);
+        var botText = (d.answer || "Не удалось сформировать ответ.") + refs;
+        addMessage("bot", botText);
+        remember("assistant", botText);
       } catch (e) {
         if (loading) loading.remove();
         addMessage("bot", "Не удалось получить ответ. Попробуйте еще раз.");
+        remember("assistant", "Не удалось получить ответ. Попробуйте еще раз.");
       }
     });
 
@@ -125,7 +136,16 @@
       sessionStorage.setItem("faith_bot_greeted", "1");
       openPanel();
       addMessage("bot", "Рада помочь. Можете спросить, например: «Что значит покаяние?»");
+      remember("assistant", "Рада помочь. Можете спросить, например: «Что значит покаяние?»");
     }, 5000);
+  }
+
+  function initJaicpBot() {
+    if (document.querySelector('script[src*="bot.jaicp.com/chatwidget"]')) return;
+    var s = document.createElement("script");
+    s.src = "https://bot.jaicp.com/chatwidget/MuNkKCYu:98618b41d6b0b61ab265288e8993bd8239a35a60/justwidget.js";
+    s.async = true;
+    document.body.appendChild(s);
   }
 
   document.addEventListener("DOMContentLoaded", async function () {
@@ -150,7 +170,7 @@
     markActive(active);
     wireNav();
     setYear();
-    initFaithBot();
+    initJaicpBot();
 
     // Универсальные анимации для современного UI (без правки каждой страницы).
     // Мы добавляем классы и запускаем reveal при попадании в область видимости.
