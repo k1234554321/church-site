@@ -1,6 +1,7 @@
 require("dotenv").config();
 
 const path = require("path");
+const fs = require("fs/promises");
 const express = require("express");
 const mysql = require("mysql2/promise");
 const Parser = require("rss-parser");
@@ -12,6 +13,7 @@ const AUTH_SECRET = process.env.AUTH_SECRET || process.env.JWT_SECRET || "dev-se
 const AI_PROVIDER = String(process.env.AI_PROVIDER || "openai").toLowerCase();
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
+const OPENAI_BASE_URL = String(process.env.OPENAI_BASE_URL || "https://api.openai.com/v1").replace(/\/+$/, "");
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || "";
 const DEEPSEEK_MODEL = process.env.DEEPSEEK_MODEL || "deepseek-chat";
 
@@ -258,10 +260,89 @@ function sanitizeChatHistory(history) {
     .filter((m) => m.content.trim().length > 0);
 }
 
-async function askOpenAI(question, history) {
+const SITE_KNOWLEDGE_PAGES = [
+  { file: "index.html", title: "Главная" },
+  { file: "history.html", title: "История храма" },
+  { file: "schedule.html", title: "Расписание" },
+  { file: "announcements.html", title: "Объявления" },
+  { file: "contacts.html", title: "Контакты" },
+  { file: "departments.html", title: "Отделы" },
+  { file: "clergy.html", title: "Духовенство" },
+  { file: "donate.html", title: "Пожертвования" },
+  { file: "notes.html", title: "Записки" },
+  { file: "news.html", title: "Новости" },
+];
+let siteKnowledgeCache = [];
+
+function stripHtmlText(html) {
+  return String(html || "")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&quot;/gi, '"')
+    .replace(/&amp;/gi, "&")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+async function buildSiteKnowledge() {
+  const out = [];
+  for (const item of SITE_KNOWLEDGE_PAGES) {
+    try {
+      const fullPath = path.join(__dirname, "public", item.file);
+      const html = await fs.readFile(fullPath, "utf8");
+      const text = stripHtmlText(html).slice(0, 4000);
+      if (!text) continue;
+      out.push({
+        page: item.title,
+        file: item.file,
+        normalized: normalizeText(text),
+        text,
+      });
+    } catch {
+      // Ignore optional pages.
+    }
+  }
+  siteKnowledgeCache = out;
+}
+
+function isSiteQuestion(questionNorm) {
+  const keys = [
+    "сайт", "приход", "храм", "страниц", "контакт", "расписан", "служб",
+    "новост", "объявлен", "пожертв", "записк", "духовенств", "адрес", "телефон",
+  ];
+  return keys.some((k) => questionNorm.includes(k));
+}
+
+function getSiteContextForQuestion(question) {
+  const q = normalizeText(question);
+  if (!q) return "";
+  const words = q.split(" ").filter((w) => w.length >= 4);
+  const ranked = siteKnowledgeCache
+    .map((entry) => {
+      let score = 0;
+      for (const w of words) if (entry.normalized.includes(w)) score += 1;
+      return { ...entry, score };
+    })
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3);
+  if (!ranked.length) return "";
+  return ranked
+    .map((entry) => `Страница "${entry.page}" (${entry.file}): ${entry.text.slice(0, 700)}`)
+    .join("\n\n");
+}
+
+function isAllowedQuestion(question) {
+  const q = normalizeText(question);
+  return isReligiousQuestion(q) || isSiteQuestion(q);
+}
+
+async function askOpenAI(question, history, siteContext) {
   if (!OPENAI_API_KEY) return null;
   const prior = sanitizeChatHistory(history);
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+  const response = await fetch(`${OPENAI_BASE_URL}/chat/completions`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -274,8 +355,11 @@ async function askOpenAI(question, history) {
         {
           role: "system",
           content:
-            "Ты православный AI-помощник сайта прихода. Отвечай по-русски, естественно и по-человечески, как адекватный собеседник. Держи фокус на теме прихода: христианство, Библия, молитва, церковная жизнь, нравственные вопросы и духовная практика. Давай полезные и понятные ответы обычно в 3-8 предложений. Если уместно, добавляй краткие библейские ссылки. Не выдумывай факты. На смежные бытовые вопросы отвечай кратко и мягко связывай с темой веры, без резких отказов.",
+            "Ты православный AI-помощник сайта прихода. Отвечай только по двум темам: 1) религия/вера/Библия/церковная жизнь; 2) информация сайта прихода из переданного контекста. Если вопрос не из этих тем, вежливо откажи и предложи задать религиозный вопрос или вопрос о сайте. Не выдумывай факты.",
         },
+        ...(siteContext
+          ? [{ role: "system", content: `Контекст сайта прихода (используй только его для ответов о сайте):\n${siteContext}` }]
+          : []),
         ...prior,
         { role: "user", content: String(question || "").slice(0, 1000) },
       ],
@@ -294,7 +378,7 @@ async function askOpenAI(question, history) {
   return { answer: text, references: [], source: "openai" };
 }
 
-async function askDeepSeek(question, history) {
+async function askDeepSeek(question, history, siteContext) {
   if (!DEEPSEEK_API_KEY) return null;
   const prior = sanitizeChatHistory(history);
   const response = await fetch("https://api.deepseek.com/chat/completions", {
@@ -310,8 +394,11 @@ async function askDeepSeek(question, history) {
         {
           role: "system",
           content:
-            "Ты православный AI-помощник сайта прихода. Отвечай по-русски, естественно и по-человечески. Фокус: христианство, Библия, молитва, церковная жизнь, нравственные вопросы и духовная практика. Отвечай ясно и полезно, обычно 3-8 предложений. Если уместно, добавляй короткие библейские ссылки. Не выдумывай факты.",
+            "Ты православный AI-помощник сайта прихода. Отвечай только по двум темам: 1) религия/вера/Библия/церковная жизнь; 2) информация сайта прихода из переданного контекста. Если вопрос не из этих тем, вежливо откажи и предложи задать религиозный вопрос или вопрос о сайте. Не выдумывай факты.",
         },
+        ...(siteContext
+          ? [{ role: "system", content: `Контекст сайта прихода (используй только его для ответов о сайте):\n${siteContext}` }]
+          : []),
         ...prior,
         { role: "user", content: String(question || "").slice(0, 1000) },
       ],
@@ -330,9 +417,9 @@ async function askDeepSeek(question, history) {
   return { answer: text, references: [], source: "deepseek" };
 }
 
-async function askAI(question, history) {
-  if (AI_PROVIDER === "deepseek") return askDeepSeek(question, history);
-  return askOpenAI(question, history);
+async function askAI(question, history, siteContext) {
+  if (AI_PROVIDER === "deepseek") return askDeepSeek(question, history, siteContext);
+  return askOpenAI(question, history, siteContext);
 }
 
 app.use(express.json({ limit: "1mb" }));
@@ -428,8 +515,19 @@ app.post("/api/chatbot/ask", async (req, res) => {
   if (!question) return res.status(400).json({ error: "Введите вопрос." });
   if (question.length > 1200) return res.status(400).json({ error: "Слишком длинный вопрос." });
   try {
-    let result = await askAI(question, history);
-    if (!result) result = localReligiousAnswer(question);
+    let result;
+    if (!isAllowedQuestion(question)) {
+      result = {
+        answer:
+          "Я отвечаю только на вопросы о религии и о материалах этого сайта прихода. Задайте, пожалуйста, вопрос в этих темах.",
+        references: [],
+        source: "guardrail",
+      };
+    } else {
+      const siteContext = getSiteContextForQuestion(question);
+      result = await askAI(question, history, siteContext);
+      if (!result) result = localReligiousAnswer(question);
+    }
     if (pool) {
       const user = await getAuthUser(req);
       await pool.execute(
@@ -877,6 +975,12 @@ app.get("/api/stats", async (_req, res) => {
 });
 
 async function start() {
+  try {
+    await buildSiteKnowledge();
+  } catch (e) {
+    console.warn("Site knowledge build warning:", e.message);
+  }
+
   try {
     await initDatabase();
   } catch (e) {

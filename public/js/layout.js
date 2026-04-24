@@ -140,12 +140,59 @@
     }, 5000);
   }
 
-  function initJaicpBot() {
-    if (document.querySelector('script[src*="bot.jaicp.com/chatwidget"]')) return;
-    var s = document.createElement("script");
-    s.src = "https://bot.jaicp.com/chatwidget/MuNkKCYu:98618b41d6b0b61ab265288e8993bd8239a35a60/justwidget.js";
-    s.async = true;
-    document.body.appendChild(s);
+  function initVisualEffects() {
+    var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) return;
+
+    // Parallax for hero/page heads and large media cards.
+    var parallaxNodes = Array.prototype.slice.call(
+      document.querySelectorAll(".hero, .page-head, .content-photo img, .map-embed")
+    );
+    parallaxNodes.forEach(function (el, idx) {
+      if (!el.dataset.parallaxSpeed) {
+        var speed = el.classList.contains("hero") ? 0.18 : 0.1 + (idx % 3) * 0.04;
+        el.dataset.parallaxSpeed = String(speed);
+      }
+      el.classList.add("parallax-item");
+    });
+
+    var ticking = false;
+    function onScroll() {
+      if (ticking) return;
+      ticking = true;
+      window.requestAnimationFrame(function () {
+        var y = window.scrollY || window.pageYOffset || 0;
+        parallaxNodes.forEach(function (el) {
+          var speed = Number(el.dataset.parallaxSpeed || "0.12");
+          var offset = Math.max(-36, Math.min(36, y * speed * 0.25));
+          el.style.setProperty("--parallax-offset", offset.toFixed(2) + "px");
+        });
+        ticking = false;
+      });
+    }
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+
+    // Soft 3D tilt for cards on desktop.
+    if (window.matchMedia && window.matchMedia("(min-width: 901px)").matches) {
+      var tiltNodes = document.querySelectorAll(".card, .news-item, .schedule-card, .clergy-card");
+      tiltNodes.forEach(function (el) {
+        el.classList.add("tilt-card");
+        el.addEventListener("mousemove", function (ev) {
+          var r = el.getBoundingClientRect();
+          var px = (ev.clientX - r.left) / r.width;
+          var py = (ev.clientY - r.top) / r.height;
+          var rx = (0.5 - py) * 4;
+          var ry = (px - 0.5) * 6;
+          el.style.setProperty("--tilt-x", rx.toFixed(2) + "deg");
+          el.style.setProperty("--tilt-y", ry.toFixed(2) + "deg");
+        });
+        el.addEventListener("mouseleave", function () {
+          el.style.setProperty("--tilt-x", "0deg");
+          el.style.setProperty("--tilt-y", "0deg");
+        });
+      });
+    }
   }
 
   document.addEventListener("DOMContentLoaded", async function () {
@@ -170,7 +217,8 @@
     markActive(active);
     wireNav();
     setYear();
-    initJaicpBot();
+    initFaithBot();
+    initVisualEffects();
 
     // Универсальные анимации для современного UI (без правки каждой страницы).
     // Мы добавляем классы и запускаем reveal при попадании в область видимости.
