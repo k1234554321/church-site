@@ -458,6 +458,21 @@ function decodeHtmlEntities(s) {
     .replace(/&gt;/g, ">");
 }
 
+function parseRuDateToIso(raw) {
+  const text = String(raw || "").trim().toLowerCase();
+  const m = text.match(/(\d{1,2})\s+(января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря)\s+(\d{4})/);
+  if (!m) return null;
+  const day = Number(m[1]);
+  const year = Number(m[3]);
+  const monthMap = {
+    января: 0, февраля: 1, марта: 2, апреля: 3, мая: 4, июня: 5,
+    июля: 6, августа: 7, сентября: 8, октября: 9, ноября: 10, декабря: 11,
+  };
+  const month = monthMap[m[2]];
+  if (Number.isNaN(day) || Number.isNaN(year) || month === undefined) return null;
+  return new Date(Date.UTC(year, month, day)).toISOString();
+}
+
 async function fetchVobEparhiaItems(listUrl, limit) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 12000);
@@ -471,23 +486,29 @@ async function fetchVobEparhiaItems(listUrl, limit) {
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const html = await res.text();
-    const re =
-      /href="doc\.php\?d=(\d+)"[^>]*>\s*<strong>([^<]+)<\/strong><\/a><br\s*\/?>\s*([^<]+)/gi;
     const seen = new Set();
     const out = [];
-    let m;
-    while ((m = re.exec(html)) !== null) {
-      const id = m[1];
+    const blocks = html.match(/<a href="doc\.php\?d=\d+"[\s\S]{0,1200}?(?:<hr|<\/div>\s*<\/div>)/gi) || [];
+    for (const block of blocks) {
+      const idMatch = block.match(/href="doc\.php\?d=(\d+)"/i);
+      const titleMatch = block.match(/<a href="doc\.php\?d=\d+"[^>]*>\s*<strong>([^<]+)<\/strong>/i);
+      const excerptMatch = block.match(/<\/strong>\s*<\/a>\s*<br\s*\/?>\s*([\s\S]{1,260}?)(?:<br\s*\/?>|<a\s|<hr|<\/div>)/i);
+      if (!idMatch || !titleMatch) continue;
+      const id = idMatch[1];
       if (seen.has(id)) continue;
       seen.add(id);
       const vobId = parseInt(id, 10);
+      const titleRaw = decodeHtmlEntities(titleMatch[1]).trim();
+      const datePart = (titleRaw.split("•")[0] || "").trim();
+      const parsedDate = parseRuDateToIso(datePart);
+      const cleanedTitle = titleRaw.includes("•") ? titleRaw.split("•").slice(1).join("•").trim() : titleRaw;
       out.push({
         sourceId: "vob_eparhia",
         sourceTitle: "Воронежская епархия (vob-eparhia.ru)",
-        title: decodeHtmlEntities(m[2]).trim() || "Новость",
+        title: cleanedTitle || titleRaw || "Новость",
         link: `https://www.vob-eparhia.ru/m/doc.php?d=${id}`,
-        date: null,
-        excerpt: decodeHtmlEntities(m[3]).trim().slice(0, 280),
+        date: parsedDate,
+        excerpt: decodeHtmlEntities((excerptMatch && excerptMatch[1]) || "").replace(/<[^>]+>/g, " ").trim().slice(0, 280),
         vobId,
       });
       if (out.length >= limit) break;
@@ -924,7 +945,7 @@ app.get("/api/news", async (req, res) => {
     source === "all"
       ? NEWS_FEEDS
       : NEWS_FEEDS.filter((f) => f.id === source || (source === "voronezh" && f.id === "vob_eparhia"));
-  const limit = Math.min(20, Math.max(1, parseInt(req.query.limit, 10) || 12));
+  const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 24));
 
   const results = [];
   for (const feed of feeds) {

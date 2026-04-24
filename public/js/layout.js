@@ -156,12 +156,31 @@
       el.classList.add("parallax-item");
     });
 
+    // Decorative global parallax background.
+    if (!document.getElementById("bg-parallax")) {
+      var bg = document.createElement("div");
+      bg.id = "bg-parallax";
+      bg.className = "bg-parallax";
+      bg.innerHTML =
+        '<div class="bg-parallax__layer bg-parallax__layer--a"></div>' +
+        '<div class="bg-parallax__layer bg-parallax__layer--b"></div>' +
+        '<div class="bg-parallax__layer bg-parallax__layer--c"></div>';
+      document.body.appendChild(bg);
+      document.body.classList.add("has-parallax-bg");
+    }
+
     var ticking = false;
     function onScroll() {
       if (ticking) return;
       ticking = true;
       window.requestAnimationFrame(function () {
         var y = window.scrollY || window.pageYOffset || 0;
+        var bg = document.getElementById("bg-parallax");
+        if (bg) {
+          bg.style.setProperty("--bg-parallax-a", (y * 0.12).toFixed(2) + "px");
+          bg.style.setProperty("--bg-parallax-b", (y * -0.08).toFixed(2) + "px");
+          bg.style.setProperty("--bg-parallax-c", (y * 0.05).toFixed(2) + "px");
+        }
         parallaxNodes.forEach(function (el) {
           var speed = Number(el.dataset.parallaxSpeed || "0.12");
           var offset = Math.max(-36, Math.min(36, y * speed * 0.25));

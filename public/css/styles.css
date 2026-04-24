@@ -34,6 +34,57 @@ body {
   background: var(--bg);
 }
 
+body.has-parallax-bg {
+  background:
+    radial-gradient(1200px 700px at 10% 18%, rgba(184, 149, 74, 0.11), transparent 70%),
+    radial-gradient(1000px 620px at 90% 12%, rgba(42, 63, 84, 0.08), transparent 70%),
+    var(--bg);
+}
+
+.bg-parallax {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  overflow: hidden;
+  --bg-parallax-a: 0px;
+  --bg-parallax-b: 0px;
+  --bg-parallax-c: 0px;
+}
+
+.bg-parallax__layer {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(2px);
+}
+
+.bg-parallax__layer--a {
+  width: 520px;
+  height: 520px;
+  left: -120px;
+  top: 80px;
+  background: radial-gradient(circle, rgba(184, 149, 74, 0.2), rgba(184, 149, 74, 0.02) 68%, transparent 78%);
+  transform: translate3d(0, var(--bg-parallax-a), 0);
+}
+
+.bg-parallax__layer--b {
+  width: 460px;
+  height: 460px;
+  right: -120px;
+  top: 240px;
+  background: radial-gradient(circle, rgba(30, 45, 61, 0.18), rgba(30, 45, 61, 0.02) 66%, transparent 80%);
+  transform: translate3d(0, var(--bg-parallax-b), 0);
+}
+
+.bg-parallax__layer--c {
+  width: 360px;
+  height: 360px;
+  left: 35%;
+  top: 60%;
+  background: radial-gradient(circle, rgba(212, 176, 104, 0.16), rgba(212, 176, 104, 0.02) 64%, transparent 80%);
+  transform: translate3d(0, var(--bg-parallax-c), 0);
+}
+
 h1,
 h2,
 h3 {
@@ -1059,6 +1110,9 @@ a:hover {
   }
   .hero {
     background-attachment: scroll;
+  }
+  .bg-parallax {
+    display: none;
   }
 }
 

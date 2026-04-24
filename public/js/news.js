@@ -4,7 +4,7 @@
     var src = document.getElementById("news-source");
     if (!box) return;
     box.innerHTML = '<p class="muted">Загрузка…</p>';
-    var q = src && src.value ? "?source=" + encodeURIComponent(src.value) + "&limit=15" : "?limit=15";
+    var q = src && src.value ? "?source=" + encodeURIComponent(src.value) + "&limit=30" : "?limit=30";
     fetch("/api/news" + q)
       .then(function (res) {
         if (!res.ok) throw new Error("HTTP " + res.status);
